@@ -29,6 +29,7 @@ all_lawsuits_file <- function(file) {
   pag <- readr::read_rds(file)
   pag_clean <- pag %>%
     dplyr::mutate(txt = txt_clean(txt))
+
   p <- assuntos_filtrar() %>%
     dplyr::mutate(res = purrr::map(value, pesquisar_assunto,
                                    txt_data = pag_clean)) %>%
@@ -36,17 +37,19 @@ all_lawsuits_file <- function(file) {
     dplyr::mutate(
       cnj = purrr::map(txt, stringr::str_extract_all, pattern = padrao_cnj())
     ) %>%
-    tidyr::unnest(cnj) %>%
     tidyr::unnest(cnj)
 
+  if (nrow(p) == 0) return(dplyr::select(p, id, tipo = value, page, txt))
+
   p %>%
+    tidyr::unnest(cnj) %>%
     dplyr::mutate(cnj = cnj %>%
                     stringr::str_remove_all("[^0-9]") %>%
                     stringr::str_pad(20, "left", "0")) %>%
     dplyr::select(cnj, id, tipo = value, page, txt)
 }
 pesquisar_assunto <- function(x, txt_data = all_texts_pags_clean) {
-  message(x, "\n")
+  message(x)
   filter(txt_data, str_detect(txt, x))
 }
 padrao_cnj <- function(){
@@ -104,8 +107,10 @@ write_pages <- function(arqs_list, chunks = 100) {
   purrr::iwalk(arqs_list, ~{
     message(.y)
     chunk_size <- ceiling(length(.x) / 1000)
-    indices <- list(0:(chunks - 1) * chunk_size + 1,
-                    c(1:(chunks - 1) * chunk_size, length(.x))) %>%
+    indices <- list(
+      0:(chunks - 1) * chunk_size + 1,
+      c(1:(chunks - 1) * chunk_size, length(.x))
+    ) %>%
       purrr::transpose() %>%
       purrr::map(purrr::flatten_dbl)
     files <- .x
@@ -120,4 +125,19 @@ write_pages <- function(arqs_list, chunks = 100) {
       readr::write_rds(pages, rds_file, compress = "none")
     })
   })
+}
+get_lawsuits <- function(arqs_list) {
+  # arqs_list <- fs::dir_ls("diarios", type = "directory") %>%
+  #   purrr::map(fs::dir_ls, regexp = "pages") %>%
+  #   purrr::map(fs::path_abs)
+  purrr::imap_dfr(arqs_list, ~{
+    message(.y)
+    res <- purrr::map_dfr(purrr::set_names(.x, .x),
+                          all_lawsuits_file, .id = "chunk") %>%
+      dplyr::select(chunk, cnj, id, tipo, page, raw_page = txt)
+    f <- glue::glue("{.y}/lawsuits.rds")
+    message(glue::glue("Saving {f} to disk..."))
+    readr::write_rds(res, f, compress = "bz2")
+    res
+  }, .id = "tribunal")
 }
