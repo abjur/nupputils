@@ -4,8 +4,9 @@
 #' @param id Numero do processo
 #' @param path Caminho onde salvar HTMLs
 #'
-#' @examples \notrun{
-#'   download_jfdf("0036535-45.2000.4.01.3400")
+#' @examples
+#' \dontrun{
+#' download_jfdf("0036535-45.2000.4.01.3400")
 #' }
 #'
 #' @export

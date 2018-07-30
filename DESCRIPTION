@@ -14,7 +14,18 @@ Imports:
   tidyr,
   progress,
   tibble,
-  abjutils
+  abjutils,
+  wdman,
+  fs,
+  httr,
+  janitor,
+  lubridate,
+  rvest,
+  seleniumPipes,
+  xml2,
+  RSelenium
+Externals:
+  johndharrison/wdman
 License: GPL-3 + file LICENSE
 Encoding: UTF-8
 LazyData: true
