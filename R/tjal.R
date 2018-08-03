@@ -99,7 +99,7 @@ parse_tjal <- function(file, inst = 1) {
       dplyr::filter(!stringr::str_detect(key, "NA")) %>%
       dplyr::mutate(key = dplyr::case_when(stringr::str_detect(key, "[V-v]ara|[F-f]oro|[C-c]omarca") ~ stringr::str_c("Local:", key),
         T ~ key),
-        key = dplyr::case_when(stringr::str_detect(key, "Origem|Distribuição") ~ stringr::str_replace_all(key, "Local:", ""),
+        key = dplyr::case_when(stringr::str_detect(key, "Origem|Distribui\u00e7\u00e3o") ~ stringr::str_replace_all(key, "Local:", ""),
           T~key)) %>%
       tidyr::separate(key, into = c("key", "val"), sep = ":", extra = "merge") %>%
       dplyr::mutate(key = stringr::str_to_lower(key),
@@ -213,7 +213,7 @@ parse_tjal <- function(file, inst = 1) {
       dplyr::filter(!stringr::str_detect(key, "NA")) %>%
       dplyr::mutate(key = dplyr::case_when(stringr::str_detect(key, "[V-v]ara|[F-f]oro|[C-c]omarca") ~ stringr::str_c("Local:", key),
         T ~ key),
-        key = dplyr::case_when(stringr::str_detect(key, "Origem|Distribuição") ~ stringr::str_replace_all(key, "Local:", ""),
+        key = dplyr::case_when(stringr::str_detect(key, "Origem|Distribui\u00e7\u00e3o") ~ stringr::str_replace_all(key, "Local:", ""),
           T~key)) %>%
       tidyr::separate(key, into = c("key", "val"), sep = ":", extra = "merge") %>%
       dplyr::mutate(key = stringr::str_to_lower(key),

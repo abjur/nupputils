@@ -114,16 +114,16 @@ parse_tjdft <- function(file, inst = "1") {
           a <- rvest::html_attr(.,'href')
           t <- rvest::html_text(., trim = T)
           dplyr::tibble(link = a, descr = t) %>%
-            dplyr::filter(descr == "Consulta Sentença")
+            dplyr::filter(descr == "Consulta Senten\u00e7a")
         } %>% dplyr::select(1) %>%
         purrr::as_vector()
 
       if(length(sentenca_link) == 0){
-        tab <- dplyr::tibble(sentenca = "Sem informação")
+        tab <- dplyr::tibble(sentenca = "Sem informa\u00e7\u00e3o")
         return(tab)
       } else {
         sentenca <- xml2::read_html(sentenca_link) %>%
-          rvest::html_text(trim = T) #%>% stringr::str_extract_all("(Sentença \\:).*") preocupar-se com a limpeza
+          rvest::html_text(trim = T) #%>% stringr::str_extract_all("(Senten\u00e7a \\:).*") preocupar-se com a limpeza
         tab <- dplyr::tibble(sentenca = sentenca)
         return(tab)
       }
@@ -173,16 +173,16 @@ parse_tjdft <- function(file, inst = "1") {
       sentenca_link <- file %>% xml2::read_html() %>% rvest::html_nodes(xpath = '//a') %>% {
         a <- rvest::html_attr(.,'href')
         t <- rvest::html_text(., trim = T)
-        dplyr::tibble(link = a, descr = t) %>% dplyr::filter(descr == "Decisão") # Função parecida com a de primeira instanvcia
+        dplyr::tibble(link = a, descr = t) %>% dplyr::filter(descr == "Decis\u00e3o") # Fun\u00e7\u00e3o parecida com a de primeira instanvcia
       } %>% dplyr::select(1) %>%
         purrr::as_vector()
 
       if(length(sentenca_link) == 0| purrr::is_null(sentenca_link)|is.na(sentenca_link)){
-        tab <- dplyr::tibble(sentenca = "Sem informação")
+        tab <- dplyr::tibble(sentenca = "Sem informa\u00e7\u00e3o")
         return(tab)
       } else {
         sentenca <- xml2::read_html(sentenca_link) %>%
-          rvest::html_text(trim = T) #%>% stringr::str_extract_all("(Sentença \\:).*") preocupar-se com a limpeza
+          rvest::html_text(trim = T) #%>% stringr::str_extract_all("(Senten\u00e7a \\:).*") preocupar-se com a limpeza
         tab <- dplyr::tibble(sentenca = sentenca)
         return(tab)
       }

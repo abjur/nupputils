@@ -12,4 +12,5 @@ NULL
 globalVariables(c(
   "txt", "value", "res", "cnj", "id", "page", "n", ".", "output",
   "all_texts_pags_clean", "key", "val", "data", "X1", "X2", "Data",
-  "Processo"))
+  "Processo", "descr", "detect_hora", "fase_flag", "flag", "mov",
+  "verificar_string"))
