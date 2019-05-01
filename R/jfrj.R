@@ -1,4 +1,3 @@
-
 #' Baixar e parsear processos da JFRJ
 #'
 #' @description Diferentemente da maioria dos downloaders/parsers,
@@ -16,61 +15,11 @@
 #' @export
 download_and_parse_jfrj <- function(id, path_rds = ".") {
 
-  connect <- function(id) {
-    u0 <- "http://procweb.jfrj.jus.br/portal/consulta/cons_procs.asp"
-    remDr <- seleniumPipes::remoteDr(port = 4568L, browserName = "phantomjs")
-    seleniumPipes::go(remDr, url = u0)
-    src <- seleniumPipes::getPageSource(remDr)
-    gabarito <- src %>%
-      xml2::xml_find_first("//input[@id='gabarito']") %>%
-      xml2::xml_attr("value")
-    remDr %>%
-      seleniumPipes::findElement("css", "#NumProc") %>%
-      seleniumPipes::elementSendKeys(id)
-    remDr %>%
-      seleniumPipes::findElement("css", "#captchacode") %>%
-      seleniumPipes::elementSendKeys(gabarito)
-    remDr %>%
-      seleniumPipes::findElement("css", "#Pesquisar") %>%
-      seleniumPipes::elementClick()
-    remDr
-  }
+  fs::dir_create(path_rds)
+  id <- unique(stringr::str_remove_all(id, "[^0-9]"))
+  f <- stringr::str_glue("{path_rds}/{id}.rds")
 
-  get_lawsuit_ids <- function(id) {
-    rem_dr <- connect(id)
-    id_doc <- rem_dr %>%
-      seleniumPipes::switchToFrame("esq", retry = FALSE) %>%
-      seleniumPipes::getPageSource() %>%
-      xml2::xml_find_first("//input[@type='hidden']") %>%
-      xml2::xml_attr("value")
-    rem_dr <- connect(id)
-    id_lawsuit <- rem_dr %>%
-      seleniumPipes::switchToFrame("esq") %>%
-      seleniumPipes::getPageSource() %>%
-      xml2::xml_find_all("//select[@id='Procs']//option") %>%
-      xml2::xml_attr("value")
-    list(id_doc = id_doc, id_lawsuit = id_lawsuit)
-  }
-
-  p_tab <- function(r_tab) {
-    r_tab %>%
-      xml2::read_html() %>%
-      xml2::xml_find_all("//table") %>%
-      dplyr::nth(3) %>%
-      rvest::html_table(header = TRUE, fill = TRUE) %>%
-      janitor::clean_names() %>%
-      tibble::as_tibble() %>%
-      purrr::set_names(abjutils::rm_accent)
-  }
-
-  p_txt <- function(r_txt) {
-    r_txt %>%
-      xml2::read_html() %>%
-      xml2::xml_find_first("//textarea") %>%
-      xml2::xml_text()
-  }
-
-  download_and_parse_jfrj_ <- function(id) {
+  if (!file.exists(f)) {
     lwst_ids <- get_lawsuit_ids(id)
     u_lawsuit <- list(
       info = "resinfoproc.asp",
@@ -82,36 +31,53 @@ download_and_parse_jfrj <- function(id, path_rds = ".") {
       recurso = "resinforecurso2.asp",
       naojuntada = "resinfopetnaojuntada2.asp"
     ) %>%
-      purrr::map(~sprintf("%s%s?CodDoc=%s&IDNumConsProc=%s",
-        "http://procweb.jfrj.jus.br/portal/consulta/",
-        .x, lwst_ids$id_lawsuit, lwst_ids$id_doc))
+      purrr::map(~sprintf("%s%s?CodDoc=%s&IDNumConsProc=1",
+                          "http://procweb.jfrj.jus.br/portal/consulta/",
+                          .x, lwst_ids$id_doc))
     list_parsers <- purrr::prepend(purrr::map(1:7, ~p_tab), p_txt)
     res <- purrr::map2(u_lawsuit, list_parsers, ~.y(httr::GET(.x))) %>%
       purrr::map_if(~purrr::is_list(.x), list) %>%
       tibble::as_tibble() %>%
       dplyr::mutate(id_lawsuit = lwst_ids$id_lawsuit,
-        id_doc = lwst_ids$id_doc, result = "OK")
-    res
+                    id_doc = lwst_ids$id_doc, result = "OK")
+    readr::write_rds(res, f)
   }
-
-  fs::dir_create(path_rds)
-  safe_dl <- purrr::possibly(download_and_parse_jfrj_,
-    tibble::tibble(result = "error"))
-  id <- unique(stringr::str_remove_all(id, "[^0-9]"))
-  names(id) <- id
-  pb <- progress::progress_bar$new(
-    total = length(id),
-    format = "<:bar> :percent eta: :eta")
-
-  purrr::map_dfr(id, ~{
-    pb$tick()
-    f <- stringr::str_glue("{path_rds}/{.x}.rds")
-    if (!file.exists(f)) {
-      res <- safe_dl(.x)
-      readr::write_rds(res, f)
-    } else {
-      res <- tibble::tibble(result = "ja foi")
-    }
-    res
-  }, .id = "id")
+  f
 }
+
+get_lawsuit_ids <- function(id_lawsuit) {
+  id <- gsub("[^0-9]", "", id_lawsuit)
+  u_base <- "http://procweb.jfrj.jus.br/portal/consulta"
+  u_consulta <- paste0(u_base, "/cons_procs.asp")
+  u_processo <- paste0(u_base, "/reslistproc.asp?SelectProc=")
+  body <- list("Botao" = "Pesquisar", "gabarito" = "0",
+               "resposta" = "0", "NumProc" = id_lawsuit)
+  httr::POST(u_consulta, body = body, encode = "form")
+  id_doc <- httr::GET(u_processo) %>%
+    xml2::read_html(encoding = "latin1") %>%
+    xml2::xml_find_first("//*[@id='Procs']//option") %>%
+    xml2::xml_attr("value")
+  list(id_doc = id_doc, id_lawsuit = id_lawsuit)
+}
+
+p_tab <- function(r_tab) {
+  r_tab %>%
+    xml2::read_html() %>%
+    xml2::xml_find_all("//table") %>%
+    dplyr::nth(3) %>%
+    rvest::html_table(header = TRUE, fill = TRUE) %>%
+    janitor::clean_names() %>%
+    tibble::as_tibble() %>%
+    purrr::set_names(abjutils::rm_accent)
+}
+
+p_txt <- function(r_txt) {
+  r_txt %>%
+    xml2::read_html() %>%
+    xml2::xml_find_first("//textarea") %>%
+    xml2::xml_text()
+}
+
+
+
+
