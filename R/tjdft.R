@@ -145,7 +145,6 @@ parse_tjdft <- function(file, inst = "1") {
         if(is.na(.)){
           t <- dplyr::tibble(file = file, referencia_outros_proc = TRUE)
           return(t)
-          break()
         }else{
           t <- dplyr::tibble(file = file, referencia_outros_proc = FALSE)
           return(t)

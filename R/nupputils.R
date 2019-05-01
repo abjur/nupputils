@@ -80,9 +80,9 @@ padrao_cnj <- function(){
 #' Ler todos os textos
 #' @param all_text_files Todos os arquivos
 read_all_txt <- function(all_text_files) {
+  pb <- progress::progress_bar$new(total = length(all_text_files))
   all_text_files %>%
     purrr::set_names(.) %>%
-    {pb <<- progress::progress_bar$new(total = length(.));.} %>%
     purrr::map_dfr(~{
       pb$tick()
       tibble::tibble(txt = readr::read_file(.x))
@@ -103,9 +103,9 @@ break_pags <- function(all_texts) {
 #' Ler textos em paralelo
 #' @param all_text_files Todos os arquivos
 read_all_txt_parallel <- function(all_text_files) {
+  pb <- progress::progress_bar$new(total = length(all_text_files))
   all_text_files %>%
     purrr::set_names(.) %>%
-    {pb <<- progress::progress_bar$new(total = length(.));.} %>%
     purrr::map_dfr(~{
       pb$tick()
       tibble::tibble(txt = readr::read_file(.x))
