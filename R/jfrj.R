@@ -60,12 +60,24 @@ get_lawsuit_ids <- function(id_lawsuit) {
   list(id_doc = id_doc, id_lawsuit = id_lawsuit)
 }
 
+cells_scrape <- function(r) {
+  xml2::xml_text(xml2::xml_children(r), trim = TRUE)
+}
+
+html_table2 <- function (x) {
+  values <- purrr::map(x, cells_scrape)
+  df <- as.data.frame(do.call(rbind, values[-1]), stringsAsFactors = FALSE)
+  if (length(values[[1]]) == ncol(df)) df <- stats::setNames(df, values[[1]])
+  return(df)
+}
+
 p_tab <- function(r_tab) {
   r_tab %>%
     xml2::read_html() %>%
     xml2::xml_find_all("//table") %>%
     dplyr::nth(3) %>%
-    rvest::html_table(header = TRUE, fill = TRUE) %>%
+    xml2::xml_find_all("./tr") %>%
+    html_table2() %>%
     janitor::clean_names() %>%
     tibble::as_tibble() %>%
     purrr::set_names(abjutils::rm_accent)
